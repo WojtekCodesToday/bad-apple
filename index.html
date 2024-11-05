@@ -17,8 +17,7 @@
             margin: 0;
             flex-direction: column;
         }
-
-        textarea {
+        textarea{
             background: black;
             color: white;
             font-size: 100%;
@@ -36,14 +35,14 @@
             user-select: none;
             cursor: text;
             user-select: none;
+        }
+        #screen {
             -webkit-box-shadow: 0px 0px 140px 79px rgba(255, 255, 255, 0.3);
             -moz-box-shadow: 0px 0px 140px 79px rgba(255, 255, 255, 0.3);
             box-shadow: 0px 0px 140px 79px rgba(255, 255, 255, 0.3);
         }
 
-        #render {
-            display: none;
-        }
+        #render{display: none}
 
         #ctrl {
             position: absolute;
@@ -54,7 +53,7 @@
             background-color: #000;
             padding: 5px;
             text-align: center;
-            padding-top:10px;
+            padding-top: 10px;
         }
 
         button {
@@ -65,12 +64,14 @@
             border-color: #fff;
             cursor: pointer;
             padding: 3px;
-            
+
         }
 
-        button:hover,::selection {
+        button:hover,
+        ::selection {
             background: rgb(88, 143, 6);
         }
+
         img {
             user-select: none;
             border-radius: 10px;
@@ -89,9 +90,10 @@
     <div id="ctrl">
         <button id="copy">Copy JS</button>
         <button id="player">Play</button>
-        <br/>
-        <input type="checkbox" id="jsdoc">
-        JSDoc comments
+        <br />
+        <input type="checkbox" id="jsdoc">JSDoc comments<br/>
+        <input type="checkbox" id="semi">Semicolon as black color<br/>
+        <textarea id="info" readonly></textarea>
     </div>
     <textarea id="screen" readonly></textarea><br /><br />
     <canvas id="render"></canvas>
@@ -102,17 +104,28 @@
         const copy = gEBI('copy');
         const canvas = gEBI('render');
         const ctrl = gEBI('ctrl');
-        const ctx = canvas.getContext('2d');
-        screen.value = "\n\n\nMade by WojtekGame, 2024\n\nI made this project for fun :D\n\nalso, the JS code from the frames DOES work on an HTML page. (tested)\n\nyou will see a bit of flashing code so,\n\ni'm sorry for those who have photosensitive epilepsy";
+        const info = gEBI('info');
+        const ctx = canvas.getContext('2d', { willReadFrequently: false });
+        video.crossOrigin = "Anonymous";
+        screen.value = "loading";
+        const stateCheck = setInterval(() => {
+            if (document.readyState === 'complete') {
+                screen.value = "\n\n\nMade by WojtekGame, 2024\n\nI made this project for fun :D\n\nalso, the JS code from the frames DOES work on an HTML page. (tested)\n\nyou will see a bit of flashing code so,\n\ni'm sorry for those who have photosensitive epilepsy";
+                document.addEventListener('click', () => play(), { once: true });
+                clearInterval(stateCheck);
+            }
+        }, 100);
         screen.style = "height: 525px; width: 691px;";
         let mediaRecorder;
         let recordedChunks = [];
         let videoWidth, videoHeight;
         let usedNames = [];
         let nl = 0;
-        let cursorleft = 0
+        let cursorleft = 0;
+        let usedC=0;
         function play() {
             video.play();
+            
             player.innerText = "Pause";
             function exec() {
                 if (!video.paused && !video.ended) {
@@ -122,7 +135,7 @@
                     screen.style.width = "1px";
                     screen.style.width = (screen.scrollWidth) + "px";
                 }
-                else if (video.ended) screen.value = ""
+                else if (video.ended){f=0;video.play();}
                 ctrl.style.display = (cursorleft == 0) ? "block" : "none"
                 window.requestAnimationFrame(exec);
             }
@@ -132,7 +145,6 @@
         screen.addEventListener("mouseenter", () => { cursorleft = 0 })
         screen.addEventListener("mouseleave", () => { cursorleft = 1 })
         screen.addEventListener("mousemove", () => { cursorleft = 0 })
-        document.addEventListener('click', () => play(), { once: true });
         copy.addEventListener('click', () => {
             if (!video.ended) navigator.clipboard.writeText(screen.value)
         });
@@ -156,6 +168,10 @@
         });
         let asciiArt = '';
         let jsSnippets = [
+            'const [r]="[a]".repeat([i]);alert([a]);',
+            'let [r]="[a]".repeat([i]);alert([a]);',
+            'const [r]="[a]".repeat([i]);console.log([a]);',
+            'let [r]="[a]".repeat([i]);console.log([a]);',
             'function [r](){return Math.floor(Math.random()*[i])+Math.floor(Math.random()*[i])};alert([a]())_',
             'function [r](){return Math.floor(Math.random()*[i])+Math.floor(Math.random()*[i])};console.log([a]())_',
             'const [r]=()=>{return Math.floor(Math.random()*[i])+Math.floor(Math.random()*[i])};alert([a]())_',
@@ -241,6 +257,7 @@
             //if (asciiArt.includes(name)) asciiArt.replaceAll(name, n);
             usedNames.push(name)
             if (usedNames.includes(name)) asciiArt.replaceAll(name, n); //prevents from making duplicated
+            usedC++;
             return name;
         }
 
@@ -254,27 +271,36 @@
         add();
         function convertToJS(asciiLine) {
             let st = asciiLine;
+            const str=(a,b)=>{st=st.replace(a,b)}
             function fE(hS) {
                 jsSnippets.forEach(snippet => {
                     const snippetLength = snippet.length;
                     const hashSequence = hS.repeat(snippetLength);
                     const regex = new RegExp(hashSequence, 'g');
-                    st = st.replace(regex, snippet);
-                    if (Math.floor(Math.random() * 2)==1)st.replaceAll("[r]", "[r][r]")
-                    st = st.replace(/\[r\]/g, n);
-                    st = st.replace(/\[a\]/g, usedNames[usedNames.length - 1]);
-                    st = st.replace(/\[r\]/g + "()", usedNames[1 - usedNames.length] + "()");
-                    st = st.replace(/\[i\]/g, 100 + Math.floor(Math.random() * 800));
+                    str(regex, snippet);
+                    if (Math.floor(Math.random() * 2) == 1) st.replaceAll("[r]", "[r][r]")
+                    if (Math.floor(Math.random() * 5) == 1) st.replaceAll("let [r]", "let [r],[r]")
+                    str(/\[r\]/g, n);
+                    str(/\[a\]/g, usedNames[usedNames.length - 1]);
+                    str(/\[r\]/g + "()", usedNames[1 - usedNames.length] + "()");
+                    str(/\[i\]/g, 100 + Math.floor(Math.random() * 800));
                 });
             }
 
             fE('#')
-            st = st.replace(/#/g, ';');
+            str(/#/g, ';');
             fE(';')
             st = st.replaceAll("_", ";");
-            st = st.replace("; ", ";");
-            st = st.replace("*/ ", "*/");
-            if (document.getElementById("jsdoc").checked)st = st.replace(/\s+/g, replaceSpacesWithJSDoc);
+            str("; ", ";");
+            str("*/ ", "*/");
+            if (gEBI("jsdoc").checked && !gEBI("jsdoc").disabled) str(/\s+/g, replaceSpacesWithJSDoc);
+            if (gEBI("semi").checked) {
+                gEBI("jsdoc").disabled = true;
+                st = st.replaceAll(" ", ";");
+            } else {
+                gEBI("jsdoc").disabled = false;
+            }
+            
             usedNames = [];
             return st;
         }
@@ -284,7 +310,7 @@
             const { data, width, height } = imageData;
             let asciiLine = '';
 
-            const asciiChars = [' ', '#'];
+            const asciiChars = " #";
             for (let y = 0; y < height; y += 2) {
                 for (let x = 0; x < width; x++) {
                     const offset = (y * width + x) * 4;
@@ -296,7 +322,9 @@
                 asciiArt += convertToJS(asciiLine) + '\n';
                 asciiLine = '';
             }
-            return asciiArt
+            info.value="random str:"+usedC+"\nframe:"+video.getVideoPlaybackQuality().totalVideoFrames;
+            usedC=0;
+            return asciiArt;
         }
     </script>
 </body>
